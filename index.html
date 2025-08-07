@@ -7,175 +7,145 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      direction: rtl;
-      height: 100vh;
-      overflow: hidden;
-    }
+    body { margin: 0; font-family: sans-serif; direction: rtl; }
 
     #title {
       background: #004c6d;
       color: white;
       text-align: center;
-      padding: 15px 10px;
-      font-size: 22px;
+      padding: 15px;
+      font-size: 24px;
       font-weight: bold;
       position: relative;
     }
 
     #title img {
       position: absolute;
-      top: 10px;
-      height: 45px;
-      max-width: 45px;
+      top: 5px;
+      height: 50px;
     }
 
     #title img.right-logo {
-      right: 10px;
+      right: 20px;
     }
 
     #title img.left-logo {
-      left: 10px;
+      left: 20px;
+    }
+
+    #map {
+      height: 88vh;
+      width: 100%;
+      position: absolute;
     }
 
     #dropdown {
       position: absolute;
-      top: 75px;
-      right: 10px;
+      top: 85px;
+      right: 15px;
       z-index: 1000;
       padding: 8px;
       font-size: 16px;
-      width: 60%;
-      max-width: 280px;
-    }
-
-    #map {
-      position: absolute;
-      top: 120px;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      height: calc(100vh - 120px);
-    }
-
-    @media (max-width: 600px) {
-      #title {
-        font-size: 16px;
-        padding: 10px;
-      }
-
-      #title img {
-        height: 35px;
-        max-width: 35px;
-      }
-
-      #dropdown {
-        width: 80%;
-        font-size: 14px;
-      }
     }
   </style>
 </head>
 <body>
 
-  <div id="title">
-    <img src="https://tse3.mm.bing.net/th/id/OIP.s3PNsu8tENpTIBIbF4hKbwHaEi?rs=1&pid=ImgDetMain&o=7&rm=3" class="right-logo" alt="logo">
-    نطاقات المشاريع التنموية
-    <img src="https://tse3.mm.bing.net/th/id/OIP.s3PNsu8tENpTIBIbF4hKbwHaEi?rs=1&pid=ImgDetMain&o=7&rm=3" class="left-logo" alt="logo">
-  </div>
+<div id="title">
+  <img src="https://tse3.mm.bing.net/th/id/OIP.s3PNsu8tENpTIBIbF4hKbwHaEi?rs=1&pid=ImgDetMain&o=7&rm=3" class="right-logo" alt="logo">
+  نطاقات المشاريع التنموية
+  <img src="https://tse3.mm.bing.net/th/id/OIP.s3PNsu8tENpTIBIbF4hKbwHaEi?rs=1&pid=ImgDetMain&o=7&rm=3" class="left-logo" alt="logo">
+</div>
 
-  <select id="dropdown">
-    <option selected disabled>اختر المشروع</option>
-  </select>
+<select id="dropdown">
+  <option selected disabled>اختر المشروع</option>
+</select>
 
-  <div id="map"></div>
+<div id="map"></div>
 
-  <script>
-    const map = L.map('map', {
-      center: [23.5, 44.5],
-      zoom: 6
-    });
+<script>
+  const map = L.map('map', {
+    center: [23.5, 44.5],
+    zoom: 6
+  });
 
-    const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    });
+  // طبقات الخلفية
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  });
 
-    const esriImagery = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      attribution: 'Tiles © Esri'
-    });
+  const esriImagery = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri'
+  });
 
-    osm.addTo(map);
+  osm.addTo(map); // الطبقة الافتراضية
 
-    L.control.layers(
-      {
-        "خريطة الأساس": osm,
-        "صورة الأقمار الصناعية": esriImagery
-      },
-      null,
-      { position: 'bottomleft' }
-    ).addTo(map);
+  L.control.layers(
+    {
+      "خريطة الأساس": osm,
+      "صورة الأقمار الصناعية": esriImagery
+    },
+    null,
+    { position: 'bottomleft' }
+  ).addTo(map);
 
-    const colors = [
-      '#440154', '#482777', '#3E4A89', '#31688E', '#26828E',
-      '#1F9E89', '#35B779', '#6CCE59', '#B4DE2C', '#FDE725',
-      '#FBE723', '#E5E419', '#C0D904', '#90C31F', '#5DBC52'
-    ];
+  // قائمة الألوان من Viridis
+  const colors = [
+    '#440154', '#482777', '#3E4A89', '#31688E', '#26828E',
+    '#1F9E89', '#35B779', '#6CCE59', '#B4DE2C', '#FDE725',
+    '#FBE723', '#E5E419', '#C0D904', '#90C31F', '#5DBC52'
+  ];
 
-    let features = [];
+  let features = [];
 
-    fetch('Projects_Boundary.json')
-      .then(res => res.json())
-      .then(geojson => {
-        features = geojson.features;
+  fetch('Projects_Boundary.json')
+    .then(res => res.json())
+    .then(geojson => {
+      features = geojson.features;
 
-        const projectColors = {};
-        let colorIndex = 0;
+      const projectColors = {};
+      let colorIndex = 0;
 
-        const layerGroup = L.geoJSON(geojson, {
-          style: function(feature) {
-            const name = feature.properties.Project_Name;
-            if (!projectColors[name]) {
-              projectColors[name] = colors[colorIndex % colors.length];
-              colorIndex++;
-            }
-            return {
-              color: 'black',
-              weight: 0.7,
-              fillColor: projectColors[name],
-              fillOpacity: 0.5
-            };
-          },
-          onEachFeature: (feature, layer) => {
-            const name = feature.properties.Project_Name;
-            if (name) layer.bindPopup(name);
-          }
-        }).addTo(map);
-
-        const dropdown = document.getElementById('dropdown');
-        features.forEach((feature, index) => {
+      const layerGroup = L.geoJSON(geojson, {
+        style: function(feature) {
           const name = feature.properties.Project_Name;
-          if (!name) return;
-          const option = document.createElement('option');
-          option.value = index;
-          option.textContent = name;
-          dropdown.appendChild(option);
-        });
+          if (!projectColors[name]) {
+            projectColors[name] = colors[colorIndex % colors.length];
+            colorIndex++;
+          }
+          return {
+            color: 'black', // الحدود
+            weight: 0.7,
+            fillColor: projectColors[name], // لون تعبئة مختلف
+            fillOpacity: 0.5
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const name = feature.properties.Project_Name;
+          if (name) layer.bindPopup(name);
+        }
+      }).addTo(map);
 
-        dropdown.addEventListener('change', () => {
-          const index = parseInt(dropdown.value);
-          const selected = features[index];
-          const layer = L.geoJSON(selected);
-          map.fitBounds(layer.getBounds());
-        });
+      // تعبئة القائمة المنسدلة
+      const dropdown = document.getElementById('dropdown');
+      features.forEach((feature, index) => {
+        const name = feature.properties.Project_Name;
+        if (!name) return;
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = name;
+        dropdown.appendChild(option);
       });
-  </script>
+
+      // عند اختيار مشروع
+      dropdown.addEventListener('change', () => {
+        const index = parseInt(dropdown.value);
+        const selected = features[index];
+        const layer = L.geoJSON(selected);
+        map.fitBounds(layer.getBounds());
+      });
+    });
+</script>
 
 </body>
 </html>

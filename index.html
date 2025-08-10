@@ -19,6 +19,7 @@
     #dropdown {
       position: absolute; top: 85px; right: 15px; z-index: 1000;
       padding: 8px; font-size: 16px; background: #fff; border-radius: 6px; border: 1px solid #ccc;
+      max-width: 60vw;
     }
     .legend { background: #fff; padding: 8px 10px; border-radius: 6px; line-height: 1.6; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
     .legend i { display:inline-block; width:14px; height:14px; margin-left:6px; border:1px solid #00000033; vertical-align: -2px; }
@@ -46,22 +47,78 @@
 
   L.control.layers({ "خريطة الأساس": osm, "صورة الأقمار الصناعية": esriImagery }, null, { position: 'topleft' }).addTo(map);
 
-  const STATUS_COLORS = {
-    "1": "#3E8F63",
-    "2": "#B3D238",
-    "3": "#EDC65A"
-  };
+  // ألوان الحالة
+  const STATUS_COLORS = { "1": "#3E8F63", "2": "#B3D238", "3": "#EDC65A" };
   const DEFAULT_COLOR = "#B3B3B3";
-
-  const STATUS_LABELS = {
-    "1": "قيد التخطيط",
-    "2": "قيد التنفيذ",
-    "3": "منتهي"
-  };
+  const STATUS_LABELS = { "1": "قيد التخطيط", "2": "قيد التنفيذ", "3": "منتهي" };
 
   const getStatusKey = (v) => v == null ? "" : String(v).trim();
   const getStatusColor = (v) => STATUS_COLORS[getStatusKey(v)] || DEFAULT_COLOR;
   const getStatusLabel = (v) => STATUS_LABELS[getStatusKey(v)] || "غير محدد";
+
+  // القاموس النهائي (وفق طلبك) + بعض الصيغ البديلة المفيدة
+  const REGION_BY_PROJECT = {
+    // منطقة تبوك
+    "نيوم المرحلة الثانية - مركز المويلح": "منطقة تبوك",
+    "نيوم المرحلة الثانية - مركز شقري": "منطقة تبوك",
+    "نيوم المرحلة الثانية - مركز السرو": "منطقة تبوك",
+    "نيوم المرحلة الثانية - جنوب البدع": "منطقة تبوك",
+    "نيوم المرحلة الثانية - مركز الزيتة": "منطقة تبوك",
+    "نيوم المرحلة الثالثة": "منطقة تبوك",
+    "نيوم المرحلة الأولى - شرما": "منطقة تبوك",
+    "نيوم المرحلة الأولى - شرماء": "منطقة تبوك",              // إضافة حسب طلبك
+    "نيوم المرحلة الأولى - الخريبة": "منطقة تبوك",
+    "نيوم المرحلة الأولى - قيال": "منطقة تبوك",
+    "وادي الديسة": "منطقة تبوك",
+    "نيوم المرحلة الأولى - مقنا": "منطقة تبوك",
+    "البحر الأحمر - المرحلة الأولى": "منطقة تبوك",
+    "آمالا الخلجان الثلاثة": "منطقة تبوك",
+    "امالا": "منطقة تبوك",
+    "نيوم المرحلة الأولى - جنوب المينا": "منطقة تبوك",        // إضافة حسب طلبك
+    "نيوم المرحلة الرابعة": "منطقة تبوك",
+
+    // المنطقة الشرقية
+    "مشروع بالم الأحساء": "المنطقة الشرقية",
+    "مشروع بلم الأحساء": "المنطقة الشرقية",                   // تهجئة بديلة لضمان التطابق
+    "مشروع تطوير ساحل محافظة الخفجي": "المنطقة الشرقية",
+
+    // منطقة الرياض
+    "مشروع الرياض رايز": "منطقة الرياض",
+    "مشروع بوتيك الرياض - قصر الملك سعود": "منطقة الرياض",
+    "شركة المربع للتطوير - الرياض هب": "منطقة الرياض",
+    "مشروع بحيرة الرياض - السفارات": "منطقة الرياض",         // تأكيد حسب طلبك
+    "وسط الرياض": "منطقة الرياض",
+    "وصلة الرياض": "منطقة الرياض",
+
+    // منطقة المدينة المنورة
+    "العلا المرحلة الأولى": "منطقة المدينة المنورة",
+    "العلا المرحلة الأولى - الأولوية الأولى - 4 مزارع": "منطقة المدينة المنورة",
+    "مشروع الخط الكهربائي الناقل - محطة ينبع": "منطقة المدينة المنورة",
+    "العلا المرحلة الثانية": "منطقة المدينة المنورة",
+    "العلا - المرحلة الثالثة": "منطقة المدينة المنورة",
+  
+
+    // منطقة حائل
+    "محمية المسمى": "منطقة حائل",
+
+    // منطقة عسير
+    "مشروع سلوان": "منطقة عسير",
+    "الوادي للتطوير - أبها": "منطقة عسير",
+    "السودة": "منطقة عسير",
+
+    // منطقة مكة المكرمة
+    "رؤى الحرم - المرحلة الأولى": "منطقة مكة المكرمة",
+    "رؤى الحرم - المرحلة الثانية": "منطقة مكة المكرمة",
+    "مشروع قناة جدة المائية": "منطقة مكة المكرمة",
+    "خليج سلمان": "منطقة مكة المكرمة",
+    "جبل الشفا": "منطقة مكة المكرمة",
+    "برنامج جدة التاريخية": "منطقة مكة المكرمة"
+    
+  };
+
+  function getRegionName(projectName) {
+    return REGION_BY_PROJECT[projectName] || "غير مُصنف";
+  }
 
   let features = [];
   let fullLayerGroup;
@@ -85,29 +142,49 @@
           const name = p.Project_Name || 'بدون اسم';
           const statusLabel = getStatusLabel(p.Project_Status);
           const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
-          layer.bindPopup(`${name}<br>الحالة: ${statusLabel}<br>المساحة: ${area} كم²`);
+          const region = getRegionName(name);
+          layer.bindPopup(`${name}<br>المنطقة: ${region}<br>الحالة: ${statusLabel}<br>المساحة: ${area} كم²`);
         }
       }).addTo(map);
 
-      // تعبئة القائمة
+      // تعبئة القائمة: تجميع حسب المنطقة باستخدام optgroup
       const dropdown = document.getElementById('dropdown');
-      const added = new Set();
 
+      // خيار "كل المشاريع"
       const allOption = document.createElement('option');
       allOption.value = 'all';
       allOption.textContent = 'كل المشاريع';
       dropdown.appendChild(allOption);
 
-      features.forEach((f) => {
-        const name = f.properties?.Project_Name;
-        if (!name || added.has(name)) return;
-        added.add(name);
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        dropdown.appendChild(opt);
-      });
+      // بناء المجموعات {منطقة: Set(مشاريع)}
+      const groups = new Map();
+      for (const f of features) {
+        const p = f.properties || {};
+        const proj = p.Project_Name && String(p.Project_Name).trim();
+        if (!proj) continue;
+        const region = getRegionName(proj);
+        if (!groups.has(region)) groups.set(region, new Set());
+        groups.get(region).add(proj);
+      }
 
+      // ترتيب عربي للمناطق والمشاريع
+      const collator = new Intl.Collator('ar');
+      const sortedRegions = Array.from(groups.keys()).sort((a, b) => collator.compare(a, b));
+
+      for (const region of sortedRegions) {
+        const og = document.createElement('optgroup');
+        og.label = region;
+        const projectsSorted = Array.from(groups.get(region)).sort((a, b) => collator.compare(a, b));
+        for (const proj of projectsSorted) {
+          const opt = document.createElement('option');
+          opt.value = proj;
+          opt.textContent = proj;
+          og.appendChild(opt);
+        }
+        dropdown.appendChild(og);
+      }
+
+      // تفاعل القائمة
       dropdown.addEventListener('change', () => {
         const val = dropdown.value;
 
@@ -118,31 +195,36 @@
 
         if (val === 'all') {
           if (!map.hasLayer(fullLayerGroup)) map.addLayer(fullLayerGroup);
-          map.fitBounds(fullLayerGroup.getBounds(), { padding: [20,20] });
-        } else {
-          if (map.hasLayer(fullLayerGroup)) map.removeLayer(fullLayerGroup);
-
-          const filtered = features.filter(f => f.properties?.Project_Name === val);
-          const fc = { type: "FeatureCollection", features: filtered };
-
-          selectedLayer = L.geoJSON(fc, {
-            style: (feature) => ({
-              color: '#000',
-              weight: 1.2,
-              fillColor: getStatusColor(feature.properties?.Project_Status),
-              fillOpacity: 0.75
-            }),
-            onEachFeature: (feature, layer) => {
-              const p = feature.properties || {};
-              const nm = p.Project_Name || 'بدون اسم';
-              const stLabel = getStatusLabel(p.Project_Status);
-              const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
-              layer.bindPopup(`${nm}<br>الحالة: ${stLabel}<br>المساحة: ${area} كم²`);
-            }
-          }).addTo(map);
-
-          map.fitBounds(selectedLayer.getBounds(), { padding: [20,20] });
+          const b = fullLayerGroup.getBounds();
+          if (b.isValid()) map.fitBounds(b, { padding: [20, 20] });
+          return;
         }
+
+        // إخفاء الطبقة الكاملة عند اختيار مشروع محدد
+        if (map.hasLayer(fullLayerGroup)) map.removeLayer(fullLayerGroup);
+
+        const filtered = features.filter(f => String(f.properties?.Project_Name).trim() === String(val).trim());
+        const fc = { type: "FeatureCollection", features: filtered };
+
+        selectedLayer = L.geoJSON(fc, {
+          style: (feature) => ({
+            color: '#000',
+            weight: 1.2,
+            fillColor: getStatusColor(feature.properties?.Project_Status),
+            fillOpacity: 0.75
+          }),
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties || {};
+            const nm = p.Project_Name || 'بدون اسم';
+            const stLabel = getStatusLabel(p.Project_Status);
+            const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
+            const reg = getRegionName(nm);
+            layer.bindPopup(`${nm}<br>المنطقة: ${reg}<br>الحالة: ${stLabel}<br>المساحة: ${area} كم²`);
+          }
+        }).addTo(map);
+
+        const b = selectedLayer.getBounds();
+        if (b.isValid()) map.fitBounds(b, { padding: [20, 20] });
       });
 
       // وسيلة الإيضاح

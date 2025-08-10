@@ -8,45 +8,20 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <style>
     body { margin: 0; font-family: sans-serif; direction: rtl; }
-
     #title {
-      background: #004c6d;
-      color: white;
-      text-align: center;
-      padding: 15px;
-      font-size: 24px;
-      font-weight: bold;
-      position: relative;
+      background: #004c6d; color: white; text-align: center;
+      padding: 15px; font-size: 24px; font-weight: bold; position: relative;
     }
-
-    #title img {
-      position: absolute;
-      top: 5px;
-      height: 50px;
-    }
-
-    #title img.right-logo {
-      right: 1px;
-    }
-
-    #title img.left-logo {
-      left: 1px;
-    }
-
-    #map {
-      height: 88vh;
-      width: 100%;
-      position: absolute;
-    }
-
+    #title img { position: absolute; top: 5px; height: 50px; }
+    #title img.right-logo { right: 1px; }
+    #title img.left-logo { left: 1px; }
+    #map { height: 88vh; width: 100%; position: absolute; }
     #dropdown {
-      position: absolute;
-      top: 85px;
-      right: 15px;
-      z-index: 1000;
-      padding: 8px;
-      font-size: 16px;
+      position: absolute; top: 85px; right: 15px; z-index: 1000;
+      padding: 8px; font-size: 16px; background: #fff; border-radius: 6px; border: 1px solid #ccc;
     }
+    .legend { background: #fff; padding: 8px 10px; border-radius: 6px; line-height: 1.6; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+    .legend i { display:inline-block; width:14px; height:14px; margin-left:6px; border:1px solid #00000033; vertical-align: -2px; }
   </style>
 </head>
 <body>
@@ -64,37 +39,31 @@
 <div id="map"></div>
 
 <script>
-  const map = L.map('map', {
-    center: [23.5, 44.5],
-    zoom: 6,
-    zoomControl: false
-  });
+  const map = L.map('map', { center: [23.5, 44.5], zoom: 6, zoomControl: false });
 
-  // طبقات الخلفية
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
-  });
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+  const esriImagery = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' });
 
-  const esriImagery = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles © Esri'
-  });
+  L.control.layers({ "خريطة الأساس": osm, "صورة الأقمار الصناعية": esriImagery }, null, { position: 'topleft' }).addTo(map);
 
-  osm.addTo(map);
+  // الألوان حسب الحالة (ثابتة على 1/2/3)
+  const STATUS_COLORS = {
+    "1": "#3E8F63",  // أخضر متوسط
+    "2": "#B3D238",  // أخضر ليموني
+    "3": "#EDC65A"   // أصفر
+  };
+  const DEFAULT_COLOR = "#B3B3B3";
 
-  L.control.layers(
-    {
-      "خريطة الأساس": osm,
-      "صورة الأقمار الصناعية": esriImagery
-    },
-    null,
-    { position: 'topleft' }
-  ).addTo(map);
+  // التسميات العربية المراد عرضها في الـpopup والـLegend
+  const STATUS_LABELS = {
+    "1": "قيد التخطيط",
+    "2": "قيد التنفيذ",
+    "3": "منتهي"
+  };
 
-  const colors = [
-    '#440154', '#482777', '#3E4A89', '#31688E', '#26828E',
-    '#1F9E89', '#35B779', '#6CCE59', '#B4DE2C', '#FDE725',
-    '#FBE723', '#E5E419', '#C0D904', '#90C31F', '#5DBC52'
-  ];
+  const getStatusKey = (v) => v == null ? "" : String(v).trim(); // يحوّل 1/2/3 إلى نص
+  const getStatusColor = (v) => STATUS_COLORS[getStatusKey(v)] || DEFAULT_COLOR;
+  const getStatusLabel = (v) => STATUS_LABELS[getStatusKey(v)] || "غير محدد";
 
   let features = [];
   let fullLayerGroup;
@@ -103,97 +72,98 @@
   fetch('Projects_Boundary.json')
     .then(res => res.json())
     .then(geojson => {
-      features = geojson.features;
+      features = geojson.features || [];
 
-      const projectColors = {};
-      let colorIndex = 0;
-
+      // طبقة جميع المشاريع ملوّنة بحسب Project_Status
       fullLayerGroup = L.geoJSON(geojson, {
-        style: function(feature) {
-          const name = feature.properties.Project_Name;
-          if (!projectColors[name]) {
-            projectColors[name] = colors[colorIndex % colors.length];
-            colorIndex++;
-          }
-          return {
-            color: 'black',
-            weight: 0.7,
-            fillColor: projectColors[name],
-            fillOpacity: 0.5
-          };
-        },
+        style: (feature) => ({
+          color: 'black',
+          weight: 0.7,
+          fillColor: getStatusColor(feature.properties?.Project_Status),
+          fillOpacity: 0.55
+        }),
         onEachFeature: (feature, layer) => {
-          const name = feature.properties.Project_Name;
-          if (name) layer.bindPopup(name);
+          const p = feature.properties || {};
+          const name = p.Project_Name || 'بدون اسم';
+          const statusLabel = getStatusLabel(p.Project_Status);
+          layer.bindPopup(`${name}<br>الحالة: ${statusLabel}`);
         }
       }).addTo(map);
 
-      // تعبئة القائمة المنسدلة
+      // تعبئة القائمة + خيار "كل المشاريع"
       const dropdown = document.getElementById('dropdown');
-      const addedProjects = new Set();
+      const added = new Set();
 
-      // ✅ إضافة خيار "كل المشاريع"
       const allOption = document.createElement('option');
       allOption.value = 'all';
       allOption.textContent = 'كل المشاريع';
       dropdown.appendChild(allOption);
 
-      features.forEach((feature) => {
-        const name = feature.properties.Project_Name;
-        if (!name || addedProjects.has(name)) return;
-        addedProjects.add(name);
-        const option = document.createElement('option');
-        option.value = name;
-        option.textContent = name;
-        dropdown.appendChild(option);
+      features.forEach((f) => {
+        const name = f.properties?.Project_Name;
+        if (!name || added.has(name)) return;
+        added.add(name);
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        dropdown.appendChild(opt);
       });
 
+      // تغيير الاختيار
       dropdown.addEventListener('change', () => {
-        const selectedValue = dropdown.value;
+        const val = dropdown.value;
 
-        // إزالة المشروع السابق (إن وجد)
         if (selectedLayer) {
           map.removeLayer(selectedLayer);
           selectedLayer = null;
         }
 
-        // إذا اختار "كل المشاريع"
-        if (selectedValue === 'all') {
-          if (!map.hasLayer(fullLayerGroup)) {
-            map.addLayer(fullLayerGroup);
-          }
-          map.fitBounds(fullLayerGroup.getBounds());
+        if (val === 'all') {
+          if (!map.hasLayer(fullLayerGroup)) map.addLayer(fullLayerGroup);
+          map.fitBounds(fullLayerGroup.getBounds(), { padding: [20,20] });
         } else {
-          // إخفاء كل المشاريع
-          if (map.hasLayer(fullLayerGroup)) {
-            map.removeLayer(fullLayerGroup);
-          }
+          if (map.hasLayer(fullLayerGroup)) map.removeLayer(fullLayerGroup);
 
-          // عرض المشروع المحدد فقط
-          const filtered = features.filter(f => f.properties.Project_Name === selectedValue);
-          selectedLayer = L.geoJSON({ type: "FeatureCollection", features: filtered }, {
-            style: {
-              color: 'black',
-              weight: 1,
-              fillColor: 'orange',
-              fillOpacity: 0.7
-            },
+          const filtered = features.filter(f => f.properties?.Project_Name === val);
+          const fc = { type: "FeatureCollection", features: filtered };
+
+          selectedLayer = L.geoJSON(fc, {
+            style: (feature) => ({
+              color: '#000',
+              weight: 1.2,
+              fillColor: getStatusColor(feature.properties?.Project_Status),
+              fillOpacity: 0.75
+            }),
             onEachFeature: (feature, layer) => {
-              layer.bindPopup(feature.properties.Project_Name);
+              const p = feature.properties || {};
+              const nm = p.Project_Name || 'بدون اسم';
+              const stLabel = getStatusLabel(p.Project_Status);
+              layer.bindPopup(`${nm}<br>الحالة: ${stLabel}`);
             }
           }).addTo(map);
 
-          map.fitBounds(selectedLayer.getBounds());
+          map.fitBounds(selectedLayer.getBounds(), { padding: [20,20] });
         }
       });
+
+      // وسيلة الإيضاح (Legend) – تعرض التسميات العربية بدل الأرقام
+      const legend = L.control({ position: 'bottomleft' });
+      legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'legend');
+        div.innerHTML = '<b>حالة المشروع</b><br>';
+        // ترتيب 1 ثم 2 ثم 3
+        ["1", "2", "3"].forEach((k) => {
+          div.innerHTML += `<div><i style="background:${STATUS_COLORS[k]}"></i>${STATUS_LABELS[k]}</div>`;
+        });
+        return div;
+      };
+      legend.addTo(map);
+    })
+    .catch(err => {
+      console.error('فشل تحميل بيانات المشاريع:', err);
+      alert('تعذر تحميل ملف Projects_Boundary.json');
     });
 </script>
 
-
 </body>
 </html>
-
-
-
-
-

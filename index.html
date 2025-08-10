@@ -219,7 +219,7 @@
             const stLabel = getStatusLabel(p.Project_Status);
             const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
             const reg = getRegionName(nm);
-            layer.bindPopup(`${nm}<br>المنطقة: ${reg}<br>الحالة: ${stLabel}<br>المساحة: ${area} كم²`);
+            layer.bindPopup(`${nm}<br>الحالة: ${stLabel}<br>المساحة: ${area} كم²`);
           }
         }).addTo(map);
 
@@ -228,7 +228,7 @@
       });
 
       // وسيلة الإيضاح
-      const legend = L.control({ position: 'bottomleft' });
+      const legend = L.control({ position: 'bottomleft',bottom:"100px" });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'legend');
         div.innerHTML = '<b>حالة المشروع</b><br>';
@@ -247,3 +247,4 @@
 
 </body>
 </html>
+

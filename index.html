@@ -40,10 +40,28 @@
 <div id="map"></div>
 
 <script>
-  const map = L.map('map', { center: [23.5, 44.5], zoom: 6, zoomControl: false });
+  // خريطة مع تفعيل أنيميشن التكبير
+  const map = L.map('map', {
+    center: [23.5, 44.5],
+    zoom: 6,
+    zoomControl: false,
+    zoomAnimation: true,
+    zoomAnimationThreshold: 4,
+    fadeAnimation: true
+  });
 
-  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
-  const esriImagery = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles © Esri' });
+  // طبقات أساس (تحديث أثناء التكبير لنعومة أفضل)
+  const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    updateWhenZooming: true,
+    keepBuffer: 4
+  }).addTo(map);
+
+  const esriImagery = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles © Esri',
+    updateWhenZooming: true,
+    keepBuffer: 4
+  });
 
   L.control.layers({ "خريطة الأساس": osm, "صورة الأقمار الصناعية": esriImagery }, null, { position: 'topleft' }).addTo(map);
 
@@ -56,7 +74,7 @@
   const getStatusColor = (v) => STATUS_COLORS[getStatusKey(v)] || DEFAULT_COLOR;
   const getStatusLabel = (v) => STATUS_LABELS[getStatusKey(v)] || "غير محدد";
 
-  // القاموس النهائي (وفق طلبك) + بعض الصيغ البديلة المفيدة
+  // القاموس النهائي
   const REGION_BY_PROJECT = {
     // منطقة تبوك
     "نيوم المرحلة الثانية - مركز المويلح": "منطقة تبوك",
@@ -66,7 +84,7 @@
     "نيوم المرحلة الثانية - مركز الزيتة": "منطقة تبوك",
     "نيوم المرحلة الثالثة": "منطقة تبوك",
     "نيوم المرحلة الأولى - شرما": "منطقة تبوك",
-    "نيوم المرحلة الأولى - شرماء": "منطقة تبوك",              // إضافة حسب طلبك
+    "نيوم المرحلة الأولى - شرماء": "منطقة تبوك",
     "نيوم المرحلة الأولى - الخريبة": "منطقة تبوك",
     "نيوم المرحلة الأولى - قيال": "منطقة تبوك",
     "وادي الديسة": "منطقة تبوك",
@@ -74,19 +92,19 @@
     "البحر الأحمر - المرحلة الأولى": "منطقة تبوك",
     "آمالا الخلجان الثلاثة": "منطقة تبوك",
     "امالا": "منطقة تبوك",
-    "نيوم المرحلة الأولى - جنوب المينا": "منطقة تبوك",        // إضافة حسب طلبك
+    "نيوم المرحلة الأولى - جنوب المينا": "منطقة تبوك",
     "نيوم المرحلة الرابعة": "منطقة تبوك",
 
     // المنطقة الشرقية
     "مشروع بالم الأحساء": "المنطقة الشرقية",
-    "مشروع بلم الأحساء": "المنطقة الشرقية",                   // تهجئة بديلة لضمان التطابق
+    "مشروع بلم الأحساء": "المنطقة الشرقية",
     "مشروع تطوير ساحل محافظة الخفجي": "المنطقة الشرقية",
 
     // منطقة الرياض
     "مشروع الرياض رايز": "منطقة الرياض",
     "مشروع بوتيك الرياض - قصر الملك سعود": "منطقة الرياض",
     "شركة المربع للتطوير - الرياض هب": "منطقة الرياض",
-    "مشروع بحيرة الرياض - السفارات": "منطقة الرياض",         // تأكيد حسب طلبك
+    "مشروع بحيرة الرياض - السفارات": "منطقة الرياض",
     "وسط الرياض": "منطقة الرياض",
     "وصلة الرياض": "منطقة الرياض",
 
@@ -96,7 +114,6 @@
     "مشروع الخط الكهربائي الناقل - محطة ينبع": "منطقة المدينة المنورة",
     "العلا المرحلة الثانية": "منطقة المدينة المنورة",
     "العلا - المرحلة الثالثة": "منطقة المدينة المنورة",
-  
 
     // منطقة حائل
     "محمية المسمى": "منطقة حائل",
@@ -113,11 +130,28 @@
     "خليج سلمان": "منطقة مكة المكرمة",
     "جبل الشفا": "منطقة مكة المكرمة",
     "برنامج جدة التاريخية": "منطقة مكة المكرمة"
-    
   };
 
   function getRegionName(projectName) {
     return REGION_BY_PROJECT[projectName] || "غير مُصنف";
+  }
+
+  // دالة تكبير/تحريك ناعم إلى حدود معينة
+  function smoothZoomTo(bounds, padding = [20, 20]) {
+    if (!bounds || !bounds.isValid()) return;
+    // إن كانت المساحة صغيرة جداً، حدّد أقصى مستوى تكبير اختياريًا
+    const options = {
+      padding,
+      animate: true,
+      duration: 1.2,       // مدة الحركة بالثواني
+      easeLinearity: 0.2,  // ليونة الحركة
+      noMoveStart: false
+    };
+    if (map.flyToBounds) {
+      map.flyToBounds(bounds, options);
+    } else {
+      map.fitBounds(bounds, { padding });
+    }
   }
 
   let features = [];
@@ -147,7 +181,7 @@
         }
       }).addTo(map);
 
-      // تعبئة القائمة: تجميع حسب المنطقة باستخدام optgroup
+      // تعبئة القائمة
       const dropdown = document.getElementById('dropdown');
 
       // خيار "كل المشاريع"
@@ -167,7 +201,7 @@
         groups.get(region).add(proj);
       }
 
-      // ترتيب عربي للمناطق والمشاريع
+      // ترتيب عربي
       const collator = new Intl.Collator('ar');
       const sortedRegions = Array.from(groups.keys()).sort((a, b) => collator.compare(a, b));
 
@@ -196,7 +230,7 @@
         if (val === 'all') {
           if (!map.hasLayer(fullLayerGroup)) map.addLayer(fullLayerGroup);
           const b = fullLayerGroup.getBounds();
-          if (b.isValid()) map.fitBounds(b, { padding: [20, 20] });
+          if (b.isValid()) smoothZoomTo(b, [30, 30]);
           return;
         }
 
@@ -224,11 +258,11 @@
         }).addTo(map);
 
         const b = selectedLayer.getBounds();
-        if (b.isValid()) map.fitBounds(b, { padding: [20, 20] });
+        if (b.isValid()) smoothZoomTo(b, [30, 30]);
       });
 
       // وسيلة الإيضاح
-      const legend = L.control({ position: 'bottomleft',bottom:"100px" });
+      const legend = L.control({ position: 'bottomleft', bottom: "100px" });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'legend');
         div.innerHTML = '<b>حالة المشروع</b><br>';
@@ -247,4 +281,3 @@
 
 </body>
 </html>
-

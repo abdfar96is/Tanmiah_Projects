@@ -46,22 +46,20 @@
 
   L.control.layers({ "خريطة الأساس": osm, "صورة الأقمار الصناعية": esriImagery }, null, { position: 'topleft' }).addTo(map);
 
-  // الألوان حسب الحالة (ثابتة على 1/2/3)
   const STATUS_COLORS = {
-    "1": "#3E8F63",  // أخضر متوسط
-    "2": "#B3D238",  // أخضر ليموني
-    "3": "#EDC65A"   // أصفر
+    "1": "#3E8F63",
+    "2": "#B3D238",
+    "3": "#EDC65A"
   };
   const DEFAULT_COLOR = "#B3B3B3";
 
-  // التسميات العربية المراد عرضها في الـpopup والـLegend
   const STATUS_LABELS = {
     "1": "قيد التخطيط",
     "2": "قيد التنفيذ",
     "3": "منتهي"
   };
 
-  const getStatusKey = (v) => v == null ? "" : String(v).trim(); // يحوّل 1/2/3 إلى نص
+  const getStatusKey = (v) => v == null ? "" : String(v).trim();
   const getStatusColor = (v) => STATUS_COLORS[getStatusKey(v)] || DEFAULT_COLOR;
   const getStatusLabel = (v) => STATUS_LABELS[getStatusKey(v)] || "غير محدد";
 
@@ -74,7 +72,7 @@
     .then(geojson => {
       features = geojson.features || [];
 
-      // طبقة جميع المشاريع ملوّنة بحسب Project_Status
+      // طبقة جميع المشاريع
       fullLayerGroup = L.geoJSON(geojson, {
         style: (feature) => ({
           color: 'black',
@@ -86,11 +84,12 @@
           const p = feature.properties || {};
           const name = p.Project_Name || 'بدون اسم';
           const statusLabel = getStatusLabel(p.Project_Status);
-          layer.bindPopup(`${name}<br>الحالة: ${statusLabel}`);
+          const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
+          layer.bindPopup(`${name}<br>الحالة: ${statusLabel}<br>المساحة: ${area} كم²`);
         }
       }).addTo(map);
 
-      // تعبئة القائمة + خيار "كل المشاريع"
+      // تعبئة القائمة
       const dropdown = document.getElementById('dropdown');
       const added = new Set();
 
@@ -109,7 +108,6 @@
         dropdown.appendChild(opt);
       });
 
-      // تغيير الاختيار
       dropdown.addEventListener('change', () => {
         const val = dropdown.value;
 
@@ -138,7 +136,8 @@
               const p = feature.properties || {};
               const nm = p.Project_Name || 'بدون اسم';
               const stLabel = getStatusLabel(p.Project_Status);
-              layer.bindPopup(`${nm}<br>الحالة: ${stLabel}`);
+              const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
+              layer.bindPopup(`${nm}<br>الحالة: ${stLabel}<br>المساحة: ${area} كم²`);
             }
           }).addTo(map);
 
@@ -146,12 +145,11 @@
         }
       });
 
-      // وسيلة الإيضاح (Legend) – تعرض التسميات العربية بدل الأرقام
+      // وسيلة الإيضاح
       const legend = L.control({ position: 'bottomleft' });
       legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'legend');
         div.innerHTML = '<b>حالة المشروع</b><br>';
-        // ترتيب 1 ثم 2 ثم 3
         ["1", "2", "3"].forEach((k) => {
           div.innerHTML += `<div><i style="background:${STATUS_COLORS[k]}"></i>${STATUS_LABELS[k]}</div>`;
         });

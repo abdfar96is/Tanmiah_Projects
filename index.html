@@ -143,7 +143,7 @@
           const statusLabel = getStatusLabel(p.Project_Status);
           const area = p.Area_km2 ? Number(p.Area_km2).toFixed(1) : "غير متوفر";
           const region = getRegionName(name);
-          layer.bindPopup(`${name}<br>المنطقة: ${region}<br>الحالة: ${statusLabel}<br>المساحة: ${area} كم²`);
+          layer.bindPopup(`${name}<br>الحالة: ${statusLabel}<br>المساحة: ${area} كم²`);
         }
       }).addTo(map);
 

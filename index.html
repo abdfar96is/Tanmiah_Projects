@@ -67,8 +67,7 @@
   const map = L.map('map', {
     center: [23.5, 44.5],
     zoom: 6,
-zoomControl: false
-
+    zoomControl: false
   });
 
   // طبقات الخلفية
@@ -80,7 +79,7 @@ zoomControl: false
     attribution: 'Tiles © Esri'
   });
 
-  osm.addTo(map); // الطبقة الافتراضية
+  osm.addTo(map);
 
   L.control.layers(
     {
@@ -91,7 +90,6 @@ zoomControl: false
     { position: 'topleft' }
   ).addTo(map);
 
-  // قائمة الألوان من Viridis
   const colors = [
     '#440154', '#482777', '#3E4A89', '#31688E', '#26828E',
     '#1F9E89', '#35B779', '#6CCE59', '#B4DE2C', '#FDE725',
@@ -99,6 +97,8 @@ zoomControl: false
   ];
 
   let features = [];
+  let fullLayerGroup;
+  let selectedLayer;
 
   fetch('Projects_Boundary.json')
     .then(res => res.json())
@@ -108,7 +108,7 @@ zoomControl: false
       const projectColors = {};
       let colorIndex = 0;
 
-      const layerGroup = L.geoJSON(geojson, {
+      fullLayerGroup = L.geoJSON(geojson, {
         style: function(feature) {
           const name = feature.properties.Project_Name;
           if (!projectColors[name]) {
@@ -116,9 +116,9 @@ zoomControl: false
             colorIndex++;
           }
           return {
-            color: 'black', // الحدود
+            color: 'black',
             weight: 0.7,
-            fillColor: projectColors[name], // لون تعبئة مختلف
+            fillColor: projectColors[name],
             fillOpacity: 0.5
           };
         },
@@ -130,27 +130,69 @@ zoomControl: false
 
       // تعبئة القائمة المنسدلة
       const dropdown = document.getElementById('dropdown');
-      features.forEach((feature, index) => {
+      const addedProjects = new Set();
+
+      // ✅ إضافة خيار "كل المشاريع"
+      const allOption = document.createElement('option');
+      allOption.value = 'all';
+      allOption.textContent = 'كل المشاريع';
+      dropdown.appendChild(allOption);
+
+      features.forEach((feature) => {
         const name = feature.properties.Project_Name;
-        if (!name) return;
+        if (!name || addedProjects.has(name)) return;
+        addedProjects.add(name);
         const option = document.createElement('option');
-        option.value = index;
+        option.value = name;
         option.textContent = name;
         dropdown.appendChild(option);
       });
 
-      // عند اختيار مشروع
       dropdown.addEventListener('change', () => {
-        const index = parseInt(dropdown.value);
-        const selected = features[index];
-        const layer = L.geoJSON(selected);
-        map.fitBounds(layer.getBounds());
+        const selectedValue = dropdown.value;
+
+        // إزالة المشروع السابق (إن وجد)
+        if (selectedLayer) {
+          map.removeLayer(selectedLayer);
+          selectedLayer = null;
+        }
+
+        // إذا اختار "كل المشاريع"
+        if (selectedValue === 'all') {
+          if (!map.hasLayer(fullLayerGroup)) {
+            map.addLayer(fullLayerGroup);
+          }
+          map.fitBounds(fullLayerGroup.getBounds());
+        } else {
+          // إخفاء كل المشاريع
+          if (map.hasLayer(fullLayerGroup)) {
+            map.removeLayer(fullLayerGroup);
+          }
+
+          // عرض المشروع المحدد فقط
+          const filtered = features.filter(f => f.properties.Project_Name === selectedValue);
+          selectedLayer = L.geoJSON({ type: "FeatureCollection", features: filtered }, {
+            style: {
+              color: 'black',
+              weight: 1,
+              fillColor: 'orange',
+              fillOpacity: 0.7
+            },
+            onEachFeature: (feature, layer) => {
+              layer.bindPopup(feature.properties.Project_Name);
+            }
+          }).addTo(map);
+
+          map.fitBounds(selectedLayer.getBounds());
+        }
       });
     });
 </script>
 
+
 </body>
 </html>
+
 
 
 

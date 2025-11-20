@@ -66,7 +66,7 @@
   L.control.layers({ "خريطة الأساس": osm, "صورة الأقمار الصناعية": esriImagery }, null, { position: 'topleft' }).addTo(map);
 
   // ألوان الحالة
-  const STATUS_COLORS = { "1": "#3E8F63", "2": "#B3D238", "3": "#EDC65A" };
+  const STATUS_COLORS = { "منتهي": "#3E8F63", "قيد التنفيذ": "#B3D238", "قيد التخطيط": "#EDC65A" };
   const DEFAULT_COLOR = "#B3B3B3";
   const STATUS_LABELS = { "1": "قيد التخطيط", "2": "قيد التنفيذ", "3": "منتهي" };
 
@@ -281,3 +281,4 @@
 
 </body>
 </html>
+
